@@ -59,10 +59,7 @@ use std::fs::File;
 let mut file = File::open("replay.tcm")?;
 
 // Create a replay template (the type determines the format version)
-let replay_template = Replay::<MetaV2>::new_empty(240.0);
-
-// Deserialize the file
-let replay = replay_template.deserialize(&mut file)?;
+let replay = Replay::<MetaV2>::deserialize(&mut file)?;
 
 println!("TPS: {}", replay.meta.tps());
 println!("Input count: {}", replay.inputs.len());
