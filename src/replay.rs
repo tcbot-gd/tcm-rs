@@ -3,9 +3,9 @@
 use std::io::{Read, Seek, Write};
 
 use crate::{
-    Frame,
     input::{BugpointInput, Input, InputCommand, PlayerButton, RestartInput, VanillaInput},
     meta::{Meta, MetaV1, MetaV2},
+    Frame,
 };
 
 pub trait ReplaySerializer<W: Write + Seek> {
@@ -137,8 +137,8 @@ mod v2 {
     use std::io::{Read, Seek, Write};
 
     use crate::{
-        Frame,
         input::{Input, RestartInput, VanillaInput},
+        Frame,
     };
 
     pub const PUSH_OFFSET: u8 = 2;
@@ -803,16 +803,16 @@ impl Meta for Box<dyn Meta> {
 
 impl DynamicReplay {
     /// Parse a replay from a reader, automatically detecting the format version.
-    /// 
+    ///
     /// This method reads the version byte from the metadata and creates the appropriate
     /// metadata type, returning a single replay instance that can be used with any
     /// Meta trait methods.
-    /// 
+    ///
     /// # Example
     /// ```no_run
     /// use std::fs::File;
     /// use tcm::DynamicReplay;
-    /// 
+    ///
     /// let mut file = File::open("replay.tcm").unwrap();
     /// let replay = DynamicReplay::from_reader(&mut file).unwrap();
     /// println!("TPS: {}", replay.meta.tps());
@@ -820,17 +820,17 @@ impl DynamicReplay {
     pub fn from_reader<R: Read + Seek>(reader: &mut R) -> std::io::Result<Self> {
         // Read version byte from metadata start (after header)
         let current_pos = reader.stream_position()?;
-        
+
         // Skip header to get to metadata
         reader.seek(std::io::SeekFrom::Start(current_pos + HEADER_SIZE as u64))?;
-        
+
         let mut version_buf = [0u8; 1];
         reader.read_exact(&mut version_buf)?;
         let version = version_buf[0];
-        
+
         // Reset to start for deserialize methods
         reader.seek(std::io::SeekFrom::Start(current_pos))?;
-        
+
         match version {
             1 => {
                 let concrete_replay = Replay::<MetaV1>::deserialize(reader)?;
@@ -863,12 +863,12 @@ impl DynamicReplay {
                 _ => {}
             }
         }
-        
+
         let meta_v1 = MetaV1 {
             tps: self.meta.tps(),
             append_counter: 0,
         };
-        
+
         Ok(Replay {
             meta: meta_v1,
             inputs: self.inputs,
@@ -878,9 +878,9 @@ impl DynamicReplay {
     /// Convert to V2 format.
     pub fn to_v2(self, rng_seed: Option<u64>) -> Replay<MetaV2> {
         let final_seed = rng_seed.or_else(|| self.meta.rng_seed());
-        
+
         let meta_v2 = MetaV2::new(self.meta.tps(), 0, final_seed);
-        
+
         Replay {
             meta: meta_v2,
             inputs: self.inputs,

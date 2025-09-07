@@ -14,8 +14,8 @@ fn test_v1_content_validation() {
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv1.tcm");
-    let replay = Replay::<MetaV1>::deserialize(&mut file)
-        .expect("Failed to deserialize restartv1.tcm");
+    let replay =
+        Replay::<MetaV1>::deserialize(&mut file).expect("Failed to deserialize restartv1.tcm");
 
     assert_eq!(MetaV1::version(), 1);
 
@@ -76,8 +76,8 @@ fn test_v2_restart_content_validation() {
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv2.tcm");
-    let replay = Replay::<MetaV2>::deserialize(&mut file)
-        .expect("Failed to deserialize restartv2.tcm");
+    let replay =
+        Replay::<MetaV2>::deserialize(&mut file).expect("Failed to deserialize restartv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
 
@@ -127,8 +127,8 @@ fn test_v2_long_content_validation() {
     assert!(example_path.exists(), "Example file longv2.tcm not found");
 
     let mut file = File::open(example_path).expect("Failed to open longv2.tcm");
-    let replay = Replay::<MetaV2>::deserialize(&mut file)
-        .expect("Failed to deserialize longv2.tcm");
+    let replay =
+        Replay::<MetaV2>::deserialize(&mut file).expect("Failed to deserialize longv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
 
@@ -207,13 +207,13 @@ fn test_frame_ordering() {
 
         let replay = if is_v1 {
             let mut file = File::open(example_path).expect("Failed to open file");
-            let replay = Replay::<MetaV1>::deserialize(&mut file)
-                .expect("Failed to deserialize file");
+            let replay =
+                Replay::<MetaV1>::deserialize(&mut file).expect("Failed to deserialize file");
             (replay.inputs, replay.meta.tps())
         } else {
             let mut file = File::open(example_path).expect("Failed to open file");
-            let replay = Replay::<MetaV2>::deserialize(&mut file)
-                .expect("Failed to deserialize file");
+            let replay =
+                Replay::<MetaV2>::deserialize(&mut file).expect("Failed to deserialize file");
             (replay.inputs, replay.meta.tps())
         };
 

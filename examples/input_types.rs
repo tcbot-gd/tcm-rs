@@ -18,28 +18,34 @@ fn main() -> io::Result<()> {
 
     let inputs = vec![
         // Jump
-        InputCommand::new(60, Input::Vanilla(VanillaInput {
-            button: PlayerButton::Jump,
-            push: true,
-            player2: false,
-        })),
-        InputCommand::new(65, Input::Vanilla(VanillaInput {
-            button: PlayerButton::Jump,
-            push: false,
-            player2: false,
-        })),
-        
+        InputCommand::new(
+            60,
+            Input::Vanilla(VanillaInput {
+                button: PlayerButton::Jump,
+                push: true,
+                player2: false,
+            }),
+        ),
+        InputCommand::new(
+            65,
+            Input::Vanilla(VanillaInput {
+                button: PlayerButton::Jump,
+                push: false,
+                player2: false,
+            }),
+        ),
         // Bugpoint input
         InputCommand::new(250, Input::Bugpoint(BugpointInput)),
-
         // TPS change
         InputCommand::new(300, Input::Tps(TpsInput { tps: 120.0 })),
-
         // Restart with new seed
-        InputCommand::new(450, Input::Restart(RestartInput {
-            restart_type: RestartType::Restart,
-            new_seed: Some(54321),
-        })),
+        InputCommand::new(
+            450,
+            Input::Restart(RestartInput {
+                restart_type: RestartType::Restart,
+                new_seed: Some(54321),
+            }),
+        ),
     ];
 
     let replay = Replay::new(meta, inputs);
@@ -52,7 +58,7 @@ fn main() -> io::Result<()> {
     replay.serialize(&mut file)?;
 
     println!("Wrote to: {}", temp_path.display());
-    
+
     // Clean up
     std::fs::remove_file(&temp_path)?;
 

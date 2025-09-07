@@ -38,4 +38,4 @@ pub mod replay;
 pub type Frame = u64;
 
 // Re-export key types for convenience
-pub use replay::{Replay, DynamicReplay};
+pub use replay::{DynamicReplay, Replay};

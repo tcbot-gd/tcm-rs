@@ -14,8 +14,8 @@ fn test_v1_read_only() {
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv1.tcm");
-    let replay = Replay::<MetaV1>::deserialize(&mut file)
-        .expect("Failed to deserialize restartv1.tcm");
+    let replay =
+        Replay::<MetaV1>::deserialize(&mut file).expect("Failed to deserialize restartv1.tcm");
 
     assert_eq!(MetaV1::version(), 1);
     assert!(replay.meta.tps() > 0.0, "TPS should be positive");
@@ -57,8 +57,8 @@ fn test_v2_restart_read_only() {
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv2.tcm");
-    let replay = Replay::<MetaV2>::deserialize(&mut file)
-        .expect("Failed to deserialize restartv2.tcm");
+    let replay =
+        Replay::<MetaV2>::deserialize(&mut file).expect("Failed to deserialize restartv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
     assert!(replay.meta.tps() > 0.0, "TPS should be positive");
@@ -89,8 +89,8 @@ fn test_v2_long_read_only() {
     assert!(example_path.exists(), "Example file longv2.tcm not found");
 
     let mut file = File::open(example_path).expect("Failed to open longv2.tcm");
-    let replay = Replay::<MetaV2>::deserialize(&mut file)
-        .expect("Failed to deserialize longv2.tcm");
+    let replay =
+        Replay::<MetaV2>::deserialize(&mut file).expect("Failed to deserialize longv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
     assert!(replay.meta.tps() > 0.0, "TPS should be positive");
@@ -162,7 +162,8 @@ fn test_file_headers() {
 #[test]
 fn test_metadata_parsing() {
     {
-        let file_bytes = std::fs::read("examples/data/restartv1.tcm").expect("Failed to read V1 file");
+        let file_bytes =
+            std::fs::read("examples/data/restartv1.tcm").expect("Failed to read V1 file");
         assert!(
             file_bytes.len() > 16 + 0x40,
             "V1 file too short for metadata"

@@ -1,17 +1,25 @@
 //! Metadata structures for TCM format versions.
 
 pub trait Meta: Send + Sync {
-    fn size() -> usize where Self: Sized;
+    fn size() -> usize
+    where
+        Self: Sized;
     fn tps(&self) -> f32;
     fn tps_dt(&self) -> f32;
     fn uses_dt(&self) -> bool;
-    fn version() -> u8 where Self: Sized;
+    fn version() -> u8
+    where
+        Self: Sized;
     fn version_instance(&self) -> u8;
     fn rng_seed(&self) -> Option<u64>;
     fn is_rng_seed_set(&self) -> bool;
-    fn from_bytes(bytes: &[u8]) -> Self where Self: Sized;
+    fn from_bytes(bytes: &[u8]) -> Self
+    where
+        Self: Sized;
     fn to_bytes(&self) -> Box<[u8]>;
-    fn new_empty(tps: f32) -> Self where Self: Sized;
+    fn new_empty(tps: f32) -> Self
+    where
+        Self: Sized;
 }
 
 #[derive(Debug, Clone)]

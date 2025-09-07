@@ -141,7 +141,6 @@ Check out the `examples/` directory for more comprehensive usage examples:
 - `basic_usage.rs` - Basic reading and writing operations
 - `input_types.rs` - Working with different input types
 - `format_conversion.rs` - Converting between v1 and v2 formats
-```
 
 ## Contributing
 
