@@ -3,7 +3,7 @@ use crate::Frame;
 
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PlayerButton {
     Jump = 1,
     Left = 2,
@@ -24,7 +24,7 @@ impl TryFrom<u8> for PlayerButton {
 }
 
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RestartType {
     Restart = 0,
     RestartFull = 1,
@@ -44,23 +44,28 @@ impl TryFrom<u8> for RestartType {
     }
 }
 
+#[derive(Debug)]
 pub struct RestartInput {
     pub restart_type: RestartType,
     pub new_seed: Option<u64>,
 }
 
+#[derive(Debug)]
 pub struct TpsInput {
     pub tps: f32,
 }
 
+#[derive(Debug)]
 pub struct VanillaInput {
     pub button: PlayerButton,
     pub push: bool,
     pub player2: bool,
 }
 
+#[derive(Debug)]
 pub struct BugpointInput;
 
+#[derive(Debug)]
 pub enum Input {
     Vanilla(VanillaInput),
     Restart(RestartInput),
