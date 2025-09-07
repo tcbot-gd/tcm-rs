@@ -1,11 +1,17 @@
 [package]
 name = "tcm"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+authors = ["tcbot-gd"]
 license = "MIT"
-description = "Rust port of TCM (tcbot macro) format for Geometry Dash"
+description = "Rust library for parsing and serializing TCM (tcbot macro) format for Geometry Dash"
 repository = "https://github.com/tcbot-gd/tcm-rs"
-keywords = ["gd", "geode", "bot"]
+homepage = "https://tcbot.pro"
+documentation = "https://docs.rs/tcm"
+readme = "README.md"
+keywords = ["gd", "geometry-dash", "bot", "macro", "replay"]
+categories = ["encoding", "parsing", "games"]
+rust-version = "1.70"
 
 [dependencies]
 thiserror = "2.0.16"

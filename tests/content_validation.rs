@@ -7,16 +7,14 @@ use tcm::replay::{Replay, ReplayDeserializer};
 
 #[test]
 fn test_v1_content_validation() {
-    let example_path = Path::new("examples/restartv1.tcm");
+    let example_path = Path::new("examples/data/restartv1.tcm");
     assert!(
         example_path.exists(),
         "Example file restartv1.tcm not found"
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv1.tcm");
-    let replay_template = Replay::<MetaV1>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV1>::deserialize(&mut file)
         .expect("Failed to deserialize restartv1.tcm");
 
     assert_eq!(MetaV1::version(), 1);
@@ -71,16 +69,14 @@ fn test_v1_content_validation() {
 
 #[test]
 fn test_v2_restart_content_validation() {
-    let example_path = Path::new("examples/restartv2.tcm");
+    let example_path = Path::new("examples/data/restartv2.tcm");
     assert!(
         example_path.exists(),
         "Example file restartv2.tcm not found"
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv2.tcm");
-    let replay_template = Replay::<MetaV2>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV2>::deserialize(&mut file)
         .expect("Failed to deserialize restartv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
@@ -127,13 +123,11 @@ fn test_v2_restart_content_validation() {
 
 #[test]
 fn test_v2_long_content_validation() {
-    let example_path = Path::new("examples/longv2.tcm");
+    let example_path = Path::new("examples/data/longv2.tcm");
     assert!(example_path.exists(), "Example file longv2.tcm not found");
 
     let mut file = File::open(example_path).expect("Failed to open longv2.tcm");
-    let replay_template = Replay::<MetaV2>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV2>::deserialize(&mut file)
         .expect("Failed to deserialize longv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
@@ -200,9 +194,9 @@ fn test_v2_long_content_validation() {
 #[test]
 fn test_frame_ordering() {
     for (file_name, is_v1) in [
-        ("examples/restartv1.tcm", true),
-        ("examples/restartv2.tcm", false),
-        ("examples/longv2.tcm", false),
+        ("examples/data/restartv1.tcm", true),
+        ("examples/data/restartv2.tcm", false),
+        ("examples/data/longv2.tcm", false),
     ] {
         let example_path = Path::new(file_name);
         assert!(
@@ -213,16 +207,12 @@ fn test_frame_ordering() {
 
         let replay = if is_v1 {
             let mut file = File::open(example_path).expect("Failed to open file");
-            let replay_template = Replay::<MetaV1>::new_empty(240.0);
-            let replay = replay_template
-                .deserialize(&mut file)
+            let replay = Replay::<MetaV1>::deserialize(&mut file)
                 .expect("Failed to deserialize file");
             (replay.inputs, replay.meta.tps())
         } else {
             let mut file = File::open(example_path).expect("Failed to open file");
-            let replay_template = Replay::<MetaV2>::new_empty(240.0);
-            let replay = replay_template
-                .deserialize(&mut file)
+            let replay = Replay::<MetaV2>::deserialize(&mut file)
                 .expect("Failed to deserialize file");
             (replay.inputs, replay.meta.tps())
         };

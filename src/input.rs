@@ -1,3 +1,5 @@
+//! Input types for TCM replays.
+
 use crate::Frame;
 
 #[repr(u8)]
@@ -42,28 +44,28 @@ impl TryFrom<u8> for RestartType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RestartInput {
     pub restart_type: RestartType,
     pub new_seed: Option<u64>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TpsInput {
     pub tps: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct VanillaInput {
     pub button: PlayerButton,
     pub push: bool,
     pub player2: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BugpointInput;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Input {
     Vanilla(VanillaInput),
     Restart(RestartInput),
@@ -71,8 +73,12 @@ pub enum Input {
     Bugpoint(BugpointInput),
 }
 
+/// A single input command with its associated frame number.
+#[derive(Debug, Clone, PartialEq)]
 pub struct InputCommand {
+    /// The frame number when this input occurs
     pub frame: Frame,
+    /// The input data
     pub input: Input,
 }
 

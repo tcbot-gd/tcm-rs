@@ -1,9 +1,11 @@
+//! Replay serialization and deserialization.
+
 use std::io::{Read, Seek, Write};
 
 use crate::{
     Frame,
     input::{BugpointInput, Input, InputCommand, PlayerButton, RestartInput, VanillaInput},
-    meta::Meta,
+    meta::{Meta, MetaV1, MetaV2},
 };
 
 pub trait ReplaySerializer<W: Write + Seek> {
@@ -11,9 +13,10 @@ pub trait ReplaySerializer<W: Write + Seek> {
 }
 
 pub trait ReplayDeserializer<R: Read + Seek, M: Meta> {
-    fn deserialize(&self, reader: &mut R) -> std::io::Result<Replay<M>>;
+    fn deserialize(reader: &mut R) -> std::io::Result<Replay<M>>;
 }
 
+#[derive(Debug, Clone)]
 pub struct Replay<M: Meta> {
     pub meta: M,
     pub inputs: Vec<InputCommand>,
@@ -39,7 +42,7 @@ trait InternalSerializer<W: Write + Seek> {
 
 trait InternalDeserializer<R: Read + Seek> {
     fn deserialize_inputs_v1(reader: &mut R) -> std::io::Result<Vec<InputCommand>>;
-    fn deserialize_inputs_v2(&self, reader: &mut R) -> std::io::Result<Vec<InputCommand>>;
+    fn deserialize_inputs_v2(reader: &mut R) -> std::io::Result<Vec<InputCommand>>;
 }
 
 mod v1 {
@@ -96,6 +99,7 @@ mod v1 {
     }
 }
 
+/// Reads a variable-length u32 from a reader using LEB128 encoding.
 fn read_var_u32(reader: &mut (impl Read + Seek)) -> std::io::Result<u32> {
     let mut value = 0u32;
     let mut shift = 0usize;
@@ -112,6 +116,7 @@ fn read_var_u32(reader: &mut (impl Read + Seek)) -> std::io::Result<u32> {
     }
 }
 
+/// Writes a variable-length u32 to a writer using LEB128 encoding.
 fn write_var_u32(writer: &mut (impl Write + Seek), mut value: u32) -> std::io::Result<()> {
     let mut buf = [0u8; 1];
 
@@ -562,7 +567,7 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
         Ok(inputs)
     }
 
-    fn deserialize_inputs_v2(&self, reader: &mut R) -> std::io::Result<Vec<InputCommand>> {
+    fn deserialize_inputs_v2(reader: &mut R) -> std::io::Result<Vec<InputCommand>> {
         use v2::{DeserializerBlob, DeserializerDeltaInfo};
 
         let mut inputs = Vec::new();
@@ -717,7 +722,7 @@ impl<W: Write + Seek, M: Meta> ReplaySerializer<W> for Replay<M> {
 }
 
 impl<R: Read + Seek, M: Meta> ReplayDeserializer<R, M> for Replay<M> {
-    fn deserialize(&self, reader: &mut R) -> std::io::Result<Replay<M>> {
+    fn deserialize(reader: &mut R) -> std::io::Result<Replay<M>> {
         let mut header = [0u8; HEADER_SIZE];
         reader.read_exact(&mut header)?;
         if header != TCBOT_HEADER {
@@ -734,7 +739,7 @@ impl<R: Read + Seek, M: Meta> ReplayDeserializer<R, M> for Replay<M> {
         let inputs = if M::version() == 1 {
             Self::deserialize_inputs_v1(reader)?
         } else if M::version() == 2 {
-            self.deserialize_inputs_v2(reader)?
+            Self::deserialize_inputs_v2(reader)?
         } else {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -743,5 +748,147 @@ impl<R: Read + Seek, M: Meta> ReplayDeserializer<R, M> for Replay<M> {
         };
 
         Ok(Replay { meta, inputs })
+    }
+}
+
+/// A TCM replay with dynamic metadata type that can be either V1 or V2.
+/// This allows working with replays without knowing the specific version at compile time.
+pub type DynamicReplay = Replay<Box<dyn Meta>>;
+
+impl Meta for Box<dyn Meta> {
+    fn size() -> usize {
+        0x40 // Both MetaV1 and MetaV2 have the same size
+    }
+
+    fn tps(&self) -> f32 {
+        self.as_ref().tps()
+    }
+
+    fn tps_dt(&self) -> f32 {
+        self.as_ref().tps_dt()
+    }
+
+    fn uses_dt(&self) -> bool {
+        self.as_ref().uses_dt()
+    }
+
+    fn version() -> u8 {
+        0 // This will be overridden by version_instance
+    }
+
+    fn version_instance(&self) -> u8 {
+        self.as_ref().version_instance()
+    }
+
+    fn rng_seed(&self) -> Option<u64> {
+        self.as_ref().rng_seed()
+    }
+
+    fn is_rng_seed_set(&self) -> bool {
+        self.as_ref().is_rng_seed_set()
+    }
+
+    fn from_bytes(_bytes: &[u8]) -> Self {
+        panic!("from_bytes cannot be called on Box<dyn Meta>, use specific types")
+    }
+
+    fn to_bytes(&self) -> Box<[u8]> {
+        self.as_ref().to_bytes()
+    }
+
+    fn new_empty(_tps: f32) -> Self {
+        panic!("new_empty cannot be called on Box<dyn Meta>, use specific types")
+    }
+}
+
+impl DynamicReplay {
+    /// Parse a replay from a reader, automatically detecting the format version.
+    /// 
+    /// This method reads the version byte from the metadata and creates the appropriate
+    /// metadata type, returning a single replay instance that can be used with any
+    /// Meta trait methods.
+    /// 
+    /// # Example
+    /// ```no_run
+    /// use std::fs::File;
+    /// use tcm::DynamicReplay;
+    /// 
+    /// let mut file = File::open("replay.tcm").unwrap();
+    /// let replay = DynamicReplay::from_reader(&mut file).unwrap();
+    /// println!("TPS: {}", replay.meta.tps());
+    /// ```
+    pub fn from_reader<R: Read + Seek>(reader: &mut R) -> std::io::Result<Self> {
+        // Read version byte from metadata start (after header)
+        let current_pos = reader.stream_position()?;
+        
+        // Skip header to get to metadata
+        reader.seek(std::io::SeekFrom::Start(current_pos + HEADER_SIZE as u64))?;
+        
+        let mut version_buf = [0u8; 1];
+        reader.read_exact(&mut version_buf)?;
+        let version = version_buf[0];
+        
+        // Reset to start for deserialize methods
+        reader.seek(std::io::SeekFrom::Start(current_pos))?;
+        
+        match version {
+            1 => {
+                let concrete_replay = Replay::<MetaV1>::deserialize(reader)?;
+                Ok(Replay {
+                    meta: Box::new(concrete_replay.meta) as Box<dyn Meta>,
+                    inputs: concrete_replay.inputs,
+                })
+            }
+            2 => {
+                let concrete_replay = Replay::<MetaV2>::deserialize(reader)?;
+                Ok(Replay {
+                    meta: Box::new(concrete_replay.meta) as Box<dyn Meta>,
+                    inputs: concrete_replay.inputs,
+                })
+            }
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Unsupported version: {}", version),
+            )),
+        }
+    }
+
+    /// Convert to V1 format.
+    pub fn to_v1(self) -> Result<Replay<MetaV1>, String> {
+        // Check for inputs that actually can't be represented in V1
+        for input_cmd in &self.inputs {
+            match &input_cmd.input {
+                Input::Tps(_) => return Err("TPS changes not supported in V1".to_string()),
+                Input::Bugpoint(_) => return Err("Bugpoint inputs not supported in V1".to_string()),
+                _ => {}
+            }
+        }
+        
+        let meta_v1 = MetaV1 {
+            tps: self.meta.tps(),
+            append_counter: 0,
+        };
+        
+        Ok(Replay {
+            meta: meta_v1,
+            inputs: self.inputs,
+        })
+    }
+
+    /// Convert to V2 format.
+    pub fn to_v2(self, rng_seed: Option<u64>) -> Replay<MetaV2> {
+        let final_seed = rng_seed.or_else(|| self.meta.rng_seed());
+        
+        let meta_v2 = MetaV2::new(self.meta.tps(), 0, final_seed);
+        
+        Replay {
+            meta: meta_v2,
+            inputs: self.inputs,
+        }
+    }
+
+    /// Convert to V2 format, preserving any existing RNG seed.
+    pub fn to_v2_preserve_seed(self) -> Replay<MetaV2> {
+        self.to_v2(None)
     }
 }

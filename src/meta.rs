@@ -1,21 +1,20 @@
-pub trait Meta {
-    fn size() -> usize;
+//! Metadata structures for TCM format versions.
 
+pub trait Meta: Send + Sync {
+    fn size() -> usize where Self: Sized;
     fn tps(&self) -> f32;
     fn tps_dt(&self) -> f32;
     fn uses_dt(&self) -> bool;
-
-    fn version() -> u8;
-
+    fn version() -> u8 where Self: Sized;
+    fn version_instance(&self) -> u8;
     fn rng_seed(&self) -> Option<u64>;
     fn is_rng_seed_set(&self) -> bool;
-
-    fn from_bytes(bytes: &[u8]) -> Self;
+    fn from_bytes(bytes: &[u8]) -> Self where Self: Sized;
     fn to_bytes(&self) -> Box<[u8]>;
-
-    fn new_empty(tps: f32) -> Self;
+    fn new_empty(tps: f32) -> Self where Self: Sized;
 }
 
+#[derive(Debug, Clone)]
 pub struct MetaV1 {
     pub tps: f32,
     pub append_counter: u8,
@@ -39,6 +38,10 @@ impl Meta for MetaV1 {
     }
 
     fn version() -> u8 {
+        1
+    }
+
+    fn version_instance(&self) -> u8 {
         1
     }
 
@@ -105,6 +108,7 @@ impl MetaV2BitFlags {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct MetaV2 {
     pub rng_seed: Option<u64>,
     tps_or_dt: f32,
@@ -138,6 +142,10 @@ impl Meta for MetaV2 {
     }
 
     fn version() -> u8 {
+        2
+    }
+
+    fn version_instance(&self) -> u8 {
         2
     }
 

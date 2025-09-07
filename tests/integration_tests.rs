@@ -8,16 +8,14 @@ use tcm::replay::{Replay, ReplayDeserializer, ReplaySerializer};
 
 #[test]
 fn test_v1_round_trip() {
-    let example_path = Path::new("examples/restartv1.tcm");
+    let example_path = Path::new("examples/data/restartv1.tcm");
     assert!(
         example_path.exists(),
         "Example file restartv1.tcm not found"
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv1.tcm");
-    let replay_template = Replay::<MetaV1>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV1>::deserialize(&mut file)
         .expect("Failed to deserialize restartv1.tcm");
 
     assert_eq!(MetaV1::version(), 1);
@@ -30,9 +28,7 @@ fn test_v1_round_trip() {
         .expect("Failed to serialize replay");
 
     let mut reader = File::open(temp_file.path()).expect("Failed to open written file");
-    let replay_template2 = Replay::<MetaV1>::new_empty(240.0);
-    let replay_reread = replay_template2
-        .deserialize(&mut reader)
+    let replay_reread = Replay::<MetaV1>::deserialize(&mut reader)
         .expect("Failed to deserialize written file");
 
     assert_eq!(replay.meta.tps(), replay_reread.meta.tps());
@@ -71,16 +67,14 @@ fn test_v1_round_trip() {
 
 #[test]
 fn test_v2_restart_round_trip() {
-    let example_path = Path::new("examples/restartv2.tcm");
+    let example_path = Path::new("examples/data/restartv2.tcm");
     assert!(
         example_path.exists(),
         "Example file restartv2.tcm not found"
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv2.tcm");
-    let replay_template = Replay::<MetaV2>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV2>::deserialize(&mut file)
         .expect("Failed to deserialize restartv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
@@ -93,9 +87,7 @@ fn test_v2_restart_round_trip() {
         .expect("Failed to serialize replay");
 
     let mut reader = File::open(temp_file.path()).expect("Failed to open written file");
-    let replay_template2 = Replay::<MetaV2>::new_empty(240.0);
-    let replay_reread = replay_template2
-        .deserialize(&mut reader)
+    let replay_reread = Replay::<MetaV2>::deserialize(&mut reader)
         .expect("Failed to deserialize written file");
 
     assert_eq!(replay.meta.tps(), replay_reread.meta.tps());
@@ -132,13 +124,11 @@ fn test_v2_restart_round_trip() {
 
 #[test]
 fn test_v2_long_round_trip() {
-    let example_path = Path::new("examples/longv2.tcm");
+    let example_path = Path::new("examples/data/longv2.tcm");
     assert!(example_path.exists(), "Example file longv2.tcm not found");
 
     let mut file = File::open(example_path).expect("Failed to open longv2.tcm");
-    let replay_template = Replay::<MetaV2>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV2>::deserialize(&mut file)
         .expect("Failed to deserialize longv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
@@ -151,9 +141,7 @@ fn test_v2_long_round_trip() {
         .expect("Failed to serialize replay");
 
     let mut reader = File::open(temp_file.path()).expect("Failed to open written file");
-    let replay_template2 = Replay::<MetaV2>::new_empty(240.0);
-    let replay_reread = replay_template2
-        .deserialize(&mut reader)
+    let replay_reread = Replay::<MetaV2>::deserialize(&mut reader)
         .expect("Failed to deserialize written file");
 
     assert_eq!(replay.meta.tps(), replay_reread.meta.tps());

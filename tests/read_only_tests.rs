@@ -7,16 +7,14 @@ use tcm::replay::{Replay, ReplayDeserializer};
 
 #[test]
 fn test_v1_read_only() {
-    let example_path = Path::new("examples/restartv1.tcm");
+    let example_path = Path::new("examples/data/restartv1.tcm");
     assert!(
         example_path.exists(),
         "Example file restartv1.tcm not found"
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv1.tcm");
-    let replay_template = Replay::<MetaV1>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV1>::deserialize(&mut file)
         .expect("Failed to deserialize restartv1.tcm");
 
     assert_eq!(MetaV1::version(), 1);
@@ -52,16 +50,14 @@ fn test_v1_read_only() {
 
 #[test]
 fn test_v2_restart_read_only() {
-    let example_path = Path::new("examples/restartv2.tcm");
+    let example_path = Path::new("examples/data/restartv2.tcm");
     assert!(
         example_path.exists(),
         "Example file restartv2.tcm not found"
     );
 
     let mut file = File::open(example_path).expect("Failed to open restartv2.tcm");
-    let replay_template = Replay::<MetaV2>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV2>::deserialize(&mut file)
         .expect("Failed to deserialize restartv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
@@ -89,13 +85,11 @@ fn test_v2_restart_read_only() {
 
 #[test]
 fn test_v2_long_read_only() {
-    let example_path = Path::new("examples/longv2.tcm");
+    let example_path = Path::new("examples/data/longv2.tcm");
     assert!(example_path.exists(), "Example file longv2.tcm not found");
 
     let mut file = File::open(example_path).expect("Failed to open longv2.tcm");
-    let replay_template = Replay::<MetaV2>::new_empty(240.0);
-    let replay = replay_template
-        .deserialize(&mut file)
+    let replay = Replay::<MetaV2>::deserialize(&mut file)
         .expect("Failed to deserialize longv2.tcm");
 
     assert_eq!(MetaV2::version(), 2);
@@ -147,9 +141,9 @@ fn test_file_headers() {
     ];
 
     for file_name in [
-        "examples/restartv1.tcm",
-        "examples/restartv2.tcm",
-        "examples/longv2.tcm",
+        "examples/data/restartv1.tcm",
+        "examples/data/restartv2.tcm",
+        "examples/data/longv2.tcm",
     ] {
         let file_bytes = std::fs::read(file_name).expect("Failed to read file");
         assert!(file_bytes.len() > 16, "File {} is too short", file_name);
@@ -168,7 +162,7 @@ fn test_file_headers() {
 #[test]
 fn test_metadata_parsing() {
     {
-        let file_bytes = std::fs::read("examples/restartv1.tcm").expect("Failed to read V1 file");
+        let file_bytes = std::fs::read("examples/data/restartv1.tcm").expect("Failed to read V1 file");
         assert!(
             file_bytes.len() > 16 + 0x40,
             "V1 file too short for metadata"
@@ -188,7 +182,7 @@ fn test_metadata_parsing() {
         );
     }
 
-    for file_name in ["examples/restartv2.tcm", "examples/longv2.tcm"] {
+    for file_name in ["examples/data/restartv2.tcm", "examples/data/longv2.tcm"] {
         let file_bytes = std::fs::read(file_name).expect("Failed to read V2 file");
         assert!(
             file_bytes.len() > 16 + 0x40,
