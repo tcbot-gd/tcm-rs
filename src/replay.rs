@@ -122,7 +122,7 @@ mod v2 {
 
     pub const PUSH_OFFSET: u8 = 2;
     pub const PLAYER2_OFFSET: u8 = 3;
-    pub const CUSTOM_OFFSET: u8 = PUSH_OFFSET;
+    pub const CUSTOM_OFFSET: u8 = 2;
     pub const EXTRA_OFFSET: u8 = 4;
     pub const DELTA_OFFSET: u8 = 5;
 
@@ -137,7 +137,7 @@ mod v2 {
         let mut byte = button & INPUT_MASK;
         byte |= (push as u8) << PUSH_OFFSET;
         byte |= (player2 as u8) << PLAYER2_OFFSET;
-        byte |= (swift as u8) << CUSTOM_OFFSET;
+        byte |= (swift as u8) << EXTRA_OFFSET;
         byte
     }
 
@@ -240,8 +240,12 @@ mod v2 {
                 return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Cannot serialize empty delta"));
             }
 
-            let delta = self.magic.unwrap_or(self.delta);
-            self.blob.serialize(writer, delta)
+            let value_to_serialize = if let Some(last_delta) = self.magic {
+                self.delta - last_delta
+            } else {
+                self.delta
+            };
+            self.blob.serialize(writer, value_to_serialize)
         }
     }
 
@@ -329,17 +333,27 @@ mod v2 {
 
         pub fn read<R: Read + Seek>(&self, reader: &mut R, p_last_delta: &mut Frame) -> std::io::Result<Frame> {
             if self.empty() {
-                return Ok(self.last_delta.unwrap_or(0));
+                let result = self.last_delta.unwrap_or(0);  // Empty delta: magic returns last_delta, non-magic returns 0
+                return Ok(result);
             }
-
-            let mut buf = vec![0u8; self.blob.max() as usize];
-            reader.read_exact(&mut buf[..self.blob.max() as usize])?;
 
             let value = match self.blob {
                 ByteBlob::Zero => 0,
-                ByteBlob::One => buf[0] as Frame,
-                ByteBlob::Two => u16::from_le_bytes(buf[..2].try_into().unwrap()) as Frame,
-                ByteBlob::Four => u32::from_le_bytes(buf[..4].try_into().unwrap()) as Frame,
+                ByteBlob::One => {
+                    let mut buf = [0u8; 1];
+                    reader.read_exact(&mut buf)?;
+                    buf[0] as Frame
+                },
+                ByteBlob::Two => {
+                    let mut buf = [0u8; 2];
+                    reader.read_exact(&mut buf)?;
+                    u16::from_le_bytes(buf) as Frame
+                },
+                ByteBlob::Four => {
+                    let mut buf = [0u8; 4];
+                    reader.read_exact(&mut buf)?;
+                    u32::from_le_bytes(buf) as Frame
+                },
             };
 
             
@@ -391,7 +405,7 @@ impl<W: Write + Seek, M: Meta> InternalSerializer<W> for Replay<M> {
                     let input = iter.next().unwrap();
                     let mut next = iter.peek();
                     let swift = next.is_some_and(|n| {
-                        if n.frame != input.frame + 1 {
+                        if n.frame != input.frame {
                             return false;
                         }
 
@@ -409,9 +423,9 @@ impl<W: Write + Seek, M: Meta> InternalSerializer<W> for Replay<M> {
                     }
 
                     if let Some(next1) = next {
-                        let this_frame = input.frame;
+                        let this_frame = input.adjusted_frame();
                         let next_frame = next1.frame;
-                        let delta = next_frame - this_frame;
+                        let delta = next_frame.saturating_sub(this_frame);
                         next_delta = SerializerDeltaInfo::new(delta, last_delta);
                     } else {
                         next_delta = SerializerDeltaInfo::default();
@@ -527,7 +541,7 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
                     use v2::{DELTA_DATA_MASK, EXTRA_MASK, INPUT_MASK, PLAYER2_MASK, PUSH_MASK, CUSTOM_MASK, CUSTOM_OFFSET};
 
                     let mut buf = [0u8; 1];
-                    let read = reader.read(&mut buf);
+                    let read = reader.read_exact(&mut buf);
                     break_if_eof!(read);
                     let byte = buf[0];
 

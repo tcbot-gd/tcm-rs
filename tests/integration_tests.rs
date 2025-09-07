@@ -92,16 +92,6 @@ fn test_v2_restart_round_trip() {
 
         assert_eq!(replay.meta.tps(), replay_reread.meta.tps());
     assert_eq!(replay.meta.rng_seed(), replay_reread.meta.rng_seed());
-    
-    println!("Original inputs: {}", replay.inputs.len());
-    println!("Reread inputs: {}", replay_reread.inputs.len());
-    for (i, input) in replay.inputs.iter().enumerate() {
-        println!("Original input {}: frame={}, type={:?}", i, input.frame, input.input);
-    }
-    for (i, input) in replay_reread.inputs.iter().enumerate() {
-        println!("Reread input {}: frame={}, type={:?}", i, input.frame, input.input);
-    }
-    
     assert_eq!(replay.inputs.len(), replay_reread.inputs.len());
 
         for (original, reread) in replay.inputs.iter().zip(replay_reread.inputs.iter()) {
@@ -125,14 +115,12 @@ fn test_v2_restart_round_trip() {
         }
     }
 
-        /*
         let original_bytes = std::fs::read(example_path).expect("Failed to read original file");
     let written_bytes = std::fs::read(temp_file.path()).expect("Failed to read written file");
     assert_eq!(
         original_bytes, written_bytes,
         "Binary content differs between original and written file"
     );
-    */
 }
 
 #[test]
