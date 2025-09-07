@@ -1,6 +1,10 @@
 use std::io::{Read, Seek, Write};
 
-use crate::{input::{BugpointInput, Input, InputCommand, PlayerButton, RestartInput, VanillaInput}, meta::Meta, Frame};
+use crate::{
+    Frame,
+    input::{BugpointInput, Input, InputCommand, PlayerButton, RestartInput, VanillaInput},
+    meta::Meta,
+};
 
 pub trait ReplaySerializer<W: Write + Seek> {
     fn serialize(&self, writer: &mut W) -> std::io::Result<()>;
@@ -50,11 +54,11 @@ mod v1 {
 
     pub fn serialize_input(input: &Input) -> Option<u8> {
         match input {
-            Input::Vanilla(vanilla) => {
-                Some(((vanilla.button as u8 - 1) & INPUT_MASK)
+            Input::Vanilla(vanilla) => Some(
+                ((vanilla.button as u8 - 1) & INPUT_MASK)
                     | ((vanilla.push as u8) << PUSH_OFFSET)
-                    | ((vanilla.player2 as u8) << PLAYER2_OFFSET))
-            },
+                    | ((vanilla.player2 as u8) << PLAYER2_OFFSET),
+            ),
             Input::Restart(RestartInput { restart_type, .. }) => match restart_type {
                 RestartType::Restart => Some(3),
                 RestartType::RestartFull => Some(4),
@@ -71,13 +75,22 @@ mod v1 {
                 button: (input + 1).try_into().ok()?,
                 push: (data & PUSH_MASK) != 0,
                 player2: (data & PLAYER2_MASK) != 0,
-            }))
+            }));
         }
 
         match input {
-            3 => Some(Input::Restart(RestartInput { restart_type: RestartType::Restart, new_seed: None })),
-            4 => Some(Input::Restart(RestartInput { restart_type: RestartType::RestartFull, new_seed: None })),
-            5 => Some(Input::Restart(RestartInput { restart_type: RestartType::Death, new_seed: None })),
+            3 => Some(Input::Restart(RestartInput {
+                restart_type: RestartType::Restart,
+                new_seed: None,
+            })),
+            4 => Some(Input::Restart(RestartInput {
+                restart_type: RestartType::RestartFull,
+                new_seed: None,
+            })),
+            5 => Some(Input::Restart(RestartInput {
+                restart_type: RestartType::Death,
+                new_seed: None,
+            })),
             _ => None,
         }
     }
@@ -118,7 +131,10 @@ fn write_var_u32(writer: &mut (impl Write + Seek), mut value: u32) -> std::io::R
 mod v2 {
     use std::io::{Read, Seek, Write};
 
-    use crate::{input::{Input, RestartInput, VanillaInput}, Frame};
+    use crate::{
+        Frame,
+        input::{Input, RestartInput, VanillaInput},
+    };
 
     pub const PUSH_OFFSET: u8 = 2;
     pub const PLAYER2_OFFSET: u8 = 3;
@@ -185,7 +201,9 @@ mod v2 {
         }
 
         pub fn iter() -> impl Iterator<Item = Self> {
-            [Self::Zero, Self::One, Self::Two, Self::Four].iter().copied()
+            [Self::Zero, Self::One, Self::Two, Self::Four]
+                .iter()
+                .copied()
         }
     }
 
@@ -237,7 +255,10 @@ mod v2 {
 
         pub fn serialize(&self, writer: &mut impl Write) -> std::io::Result<()> {
             if self.empty() {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Cannot serialize empty delta"));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Cannot serialize empty delta",
+                ));
             }
 
             let value_to_serialize = if let Some(last_delta) = self.magic {
@@ -268,27 +289,35 @@ mod v2 {
     }
 
     pub fn serialize_input(input: &Input, swift: bool) -> u8 {
-        if let Input::Vanilla(VanillaInput { button, push, player2 }) =  input{
-            return craft_input(*button as u8, *push, *player2, swift)
+        if let Input::Vanilla(VanillaInput {
+            button,
+            push,
+            player2,
+        }) = input
+        {
+            return craft_input(*button as u8, *push, *player2, swift);
         }
-        
+
         assert!(!swift, "Non-vanilla inputs cannot be swift");
 
         let t: u8;
         let mut extra = false;
 
         match input {
-            Input::Restart(RestartInput { restart_type, new_seed }) => {
+            Input::Restart(RestartInput {
+                restart_type,
+                new_seed,
+            }) => {
                 t = *restart_type as u8;
                 extra = new_seed.is_some();
-            },
+            }
             Input::Tps(_) => {
                 t = 3;
-            },
+            }
             Input::Bugpoint(_) => {
                 t = 3;
                 extra = true;
-            },
+            }
             _ => unreachable!(),
         }
 
@@ -331,9 +360,13 @@ mod v2 {
             self.blob == ByteBlob::Zero
         }
 
-        pub fn read<R: Read + Seek>(&self, reader: &mut R, p_last_delta: &mut Frame) -> std::io::Result<Frame> {
+        pub fn read<R: Read + Seek>(
+            &self,
+            reader: &mut R,
+            p_last_delta: &mut Frame,
+        ) -> std::io::Result<Frame> {
             if self.empty() {
-                let result = self.last_delta.unwrap_or(0);  // Empty delta: magic returns last_delta, non-magic returns 0
+                let result = self.last_delta.unwrap_or(0); // Empty delta: magic returns last_delta, non-magic returns 0
                 return Ok(result);
             }
 
@@ -343,20 +376,19 @@ mod v2 {
                     let mut buf = [0u8; 1];
                     reader.read_exact(&mut buf)?;
                     buf[0] as Frame
-                },
+                }
                 ByteBlob::Two => {
                     let mut buf = [0u8; 2];
                     reader.read_exact(&mut buf)?;
                     u16::from_le_bytes(buf) as Frame
-                },
+                }
                 ByteBlob::Four => {
                     let mut buf = [0u8; 4];
                     reader.read_exact(&mut buf)?;
                     u32::from_le_bytes(buf) as Frame
-                },
+                }
             };
 
-            
             let result = self.last_delta.unwrap_or(0) + value;
 
             if result != 0 {
@@ -372,13 +404,17 @@ impl<W: Write + Seek, M: Meta> InternalSerializer<W> for Replay<M> {
     fn serialize_inputs_v1(&self, writer: &mut W) -> std::io::Result<()> {
         write_var_u32(writer, self.inputs.len() as u32)?;
 
-        self.inputs.iter().try_for_each(|input| -> std::io::Result<()> {
-            let input_data = v1::serialize_input(&input.input)
-                .ok_or(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unsupported input type in v1 replay"))?;
-            write_var_u32(writer, input.frame as u32)?;
-            writer.write_all(&[input_data])?;
-            Ok(())
-        })?;
+        self.inputs
+            .iter()
+            .try_for_each(|input| -> std::io::Result<()> {
+                let input_data = v1::serialize_input(&input.input).ok_or(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Unsupported input type in v1 replay",
+                ))?;
+                write_var_u32(writer, input.frame as u32)?;
+                writer.write_all(&[input_data])?;
+                Ok(())
+            })?;
 
         writer.write_all(&[v1::EOM])?;
         Ok(())
@@ -444,7 +480,7 @@ impl<W: Write + Seek, M: Meta> InternalSerializer<W> for Replay<M> {
                     match &input.input {
                         Input::Tps(tps) => {
                             next_blob = SerializerBlob::Tps(tps.tps);
-                        },
+                        }
                         Input::Restart(restart) => {
                             if let Some(seed) = restart.new_seed {
                                 next_blob = SerializerBlob::Seed(seed);
@@ -453,7 +489,7 @@ impl<W: Write + Seek, M: Meta> InternalSerializer<W> for Replay<M> {
                             } else {
                                 next_blob = SerializerBlob::FrameDelta;
                             }
-                        },
+                        }
                         _ => {
                             if next_delta.empty() {
                                 next_blob = SerializerBlob::Action;
@@ -462,7 +498,7 @@ impl<W: Write + Seek, M: Meta> InternalSerializer<W> for Replay<M> {
                             }
                         }
                     }
-                },
+                }
                 SerializerBlob::FrameDelta => {
                     next_delta.serialize(writer)?;
                     next_blob = SerializerBlob::Action;
@@ -516,8 +552,10 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
             let frame = read_var_u32(reader)? as Frame;
             reader.read_exact(&mut buf)?;
             let byte = buf[0];
-            let input = v1::deserialize_input(byte)
-                .ok_or(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid input byte in v1 replay"))?;
+            let input = v1::deserialize_input(byte).ok_or(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid input byte in v1 replay",
+            ))?;
             inputs.push(InputCommand { frame, input });
         }
 
@@ -538,7 +576,10 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
         loop {
             match next_blob {
                 DeserializerBlob::Action => {
-                    use v2::{DELTA_DATA_MASK, EXTRA_MASK, INPUT_MASK, PLAYER2_MASK, PUSH_MASK, CUSTOM_MASK, CUSTOM_OFFSET};
+                    use v2::{
+                        CUSTOM_MASK, CUSTOM_OFFSET, DELTA_DATA_MASK, EXTRA_MASK, INPUT_MASK,
+                        PLAYER2_MASK, PUSH_MASK,
+                    };
 
                     let mut buf = [0u8; 1];
                     let read = reader.read_exact(&mut buf);
@@ -558,13 +599,21 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
 
                         inputs.push(InputCommand {
                             frame: current_frame,
-                            input: Input::Vanilla(VanillaInput { button, push, player2 }),
+                            input: Input::Vanilla(VanillaInput {
+                                button,
+                                push,
+                                player2,
+                            }),
                         });
 
                         if swift {
                             inputs.push(InputCommand {
                                 frame: current_frame,
-                                input: Input::Vanilla(VanillaInput { button, push: !push, player2 }),
+                                input: Input::Vanilla(VanillaInput {
+                                    button,
+                                    push: !push,
+                                    player2,
+                                }),
                             });
                         }
 
@@ -591,20 +640,23 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
                             } else {
                                 inputs.push(InputCommand {
                                     frame: current_frame,
-                                    input: Input::Restart(RestartInput { restart_type, new_seed: None }),
+                                    input: Input::Restart(RestartInput {
+                                        restart_type,
+                                        new_seed: None,
+                                    }),
                                 });
                                 next_blob = DeserializerBlob::FrameDelta;
                             }
                             current_frame = 0;
                         }
                     }
-                },
+                }
                 DeserializerBlob::FrameDelta => {
                     let dt = next_delta.read(reader, &mut last_delta);
                     let dt = break_if_eof!(dt);
                     current_frame += dt;
                     next_blob = DeserializerBlob::Action;
-                },
+                }
                 DeserializerBlob::Tps => {
                     let mut buf = [0u8; 4];
                     reader.read_exact(&mut buf)?;
@@ -614,10 +666,13 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
                         input: Input::Tps(crate::input::TpsInput { tps }),
                     });
                     next_blob = DeserializerBlob::FrameDelta;
-                },
+                }
                 DeserializerBlob::Seed => {
                     if awaiting_seed.is_none() {
-                        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unexpected seed input"));
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Unexpected seed input",
+                        ));
                     }
 
                     let (t, frame) = awaiting_seed.take().unwrap();
@@ -643,7 +698,7 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
 
 const HEADER_SIZE: usize = 0x10;
 const TCBOT_HEADER: [u8; HEADER_SIZE] = [
-    0x9f, 0x88, 0x89, 0x84, 0x9f, 0x3b, 0x1d, 0xd8, 0xcc, 0xa1, 0x86, 0x8a, 0x88, 0x99, 0x84, 0x00
+    0x9f, 0x88, 0x89, 0x84, 0x9f, 0x3b, 0x1d, 0xd8, 0xcc, 0xa1, 0x86, 0x8a, 0x88, 0x99, 0x84, 0x00,
 ];
 
 impl<W: Write + Seek, M: Meta> ReplaySerializer<W> for Replay<M> {
@@ -666,7 +721,10 @@ impl<R: Read + Seek, M: Meta> ReplayDeserializer<R, M> for Replay<M> {
         let mut header = [0u8; HEADER_SIZE];
         reader.read_exact(&mut header)?;
         if header != TCBOT_HEADER {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid header"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid header",
+            ));
         }
 
         let mut meta_bytes = vec![0u8; M::size()];
@@ -678,7 +736,10 @@ impl<R: Read + Seek, M: Meta> ReplayDeserializer<R, M> for Replay<M> {
         } else if M::version() == 2 {
             self.deserialize_inputs_v2(reader)?
         } else {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Unsupported meta version"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Unsupported meta version",
+            ));
         };
 
         Ok(Replay { meta, inputs })

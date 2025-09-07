@@ -1,5 +1,3 @@
-
-
 pub trait Meta {
     fn size() -> usize;
 
@@ -80,7 +78,10 @@ impl Meta for MetaV1 {
 
 impl MetaV1 {
     pub fn new(tps: f32, append_counter: u8) -> Self {
-        Self { tps, append_counter }
+        Self {
+            tps,
+            append_counter,
+        }
     }
 }
 

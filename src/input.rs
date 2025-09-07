@@ -1,7 +1,5 @@
 use crate::Frame;
 
-
-
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PlayerButton {
