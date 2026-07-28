@@ -693,6 +693,7 @@ impl<R: Read + Seek, M: Meta> InternalDeserializer<R> for Replay<M> {
                             new_seed: Some(seed),
                         }),
                     });
+                    next_blob = DeserializerBlob::FrameDelta;
                 }
             }
         }
