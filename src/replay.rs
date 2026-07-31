@@ -711,12 +711,13 @@ impl<W: Write + Seek, M: Meta> ReplaySerializer<W> for Replay<M> {
     fn serialize(&self, writer: &mut W) -> std::io::Result<()> {
         writer.write_all(&TCBOT_HEADER)?;
         writer.write_all(&self.meta.to_bytes())?;
-        if M::version() == 1 {
+        let version = self.meta.version_instance();
+        if version == 1 {
             self.serialize_inputs_v1(writer)?;
-        } else if M::version() == 2 {
+        } else if version == 2 {
             self.serialize_inputs_v2(writer)?;
         } else {
-            panic!("Unsupported meta version: {}", M::version());
+            panic!("Unsupported meta version: {}", version);
         }
         Ok(())
     }
@@ -797,8 +798,8 @@ impl Meta for Box<dyn Meta> {
         self.as_ref().to_bytes()
     }
 
-    fn new_empty(_tps: f32) -> Self {
-        panic!("new_empty cannot be called on Box<dyn Meta>, use specific types")
+    fn new_empty(tps: f32) -> Self {
+        Box::new(crate::meta::MetaV2::new_empty(tps))
     }
 }
 
