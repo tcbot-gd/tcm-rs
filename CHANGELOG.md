@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial public release
-- Support for TCM format v1 and v2
-- Comprehensive documentation and examples
-- Full serialization and deserialization support
+## [0.1.1] - 2026-07-31
+
+### Fixed
+- Fixed `DynamicReplay` serialization asserting on missing metadata version
+- Fixed `next_blob` state issue after a seed change [#1](https://github.com/tcbot-gd/tcm-rs/pull/1)
 
 ## [0.1.0] - 2025-09-07
 
